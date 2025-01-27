@@ -5,7 +5,7 @@
 #include "ray.h"
 
 // does ray intersect with sphere
-bool hit_sphere(const vec3& center, double radius, const ray& r) {
+bool hit_sphere(const vec3& center, double radius, const ray& r, double& t) {
     // a,b,c are extrapolated from equation for sphere centered at an arbitrary point
     vec3 oc = center - r.origin();
     auto a = dot(r.direction(), r.direction());
@@ -14,14 +14,23 @@ bool hit_sphere(const vec3& center, double radius, const ray& r) {
     // using a,b,c... can solve for discriminant (# of solutions in quadratic equation)
     auto discriminant = b*b - 4*a*c;
     // if discriminant is greater than 0, there are two solutions (ray intersects sphere)
-    return (discriminant > 0);
+
+    if (discriminant < 0) {
+        return false;
+    } else {
+        t = (-b - std::sqrt(discriminant)) / (2.0 * a);
+        return true;
+    }
 
 }
 
 color ray_color(const ray& r) {
+    double t;
     // create a sphere with radius, and give it the current ray
-    if (hit_sphere(vec3(0,0,-1), 0.5, r))
-        return color(1, 0, 0);
+    if (hit_sphere(vec3(0,0,-1), 0.5, r, t)){
+        vec3 p = r.at(t);
+        return color(1, 1+p.z(), 0);
+    }
     // no sphere is hit, get y value and determine color
     vec3 unit_direction = unit_vector(r.direction());
     auto a = 0.5*(unit_direction.y() + 1.0);
@@ -64,13 +73,13 @@ int main() {
     //iterate through pixels in image height and width
     for (int j = 0; j < image_height; j++) {
         // logging progress
-        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        // std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
             // get pixel center of nth pixel
-            auto pixel_center = pixel00_loc + (i * pixel_delta_w) + (j * pixel_delta_h);
-            //find ray direction relative to camera center
-            auto ray_direction = pixel_center - camera_center;
-            //create new ray object
+            vec3 pixel_center = pixel00_loc + (i * pixel_delta_w) + (j * pixel_delta_h);
+            // find ray direction relative to camera center
+            vec3 ray_direction = pixel_center - camera_center;
+            // create new ray object starting at camera center
             ray r(camera_center, ray_direction);
 
             color pixel_color = ray_color(r);
