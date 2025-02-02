@@ -5,31 +5,30 @@
 #include "ray.h"
 
 // does ray intersect with sphere
-bool hit_sphere(const vec3& center, double radius, const ray& r, double& t) {
+double hit_sphere(const vec3& center, double radius, const ray& r) {
     // a,b,c are extrapolated from equation for sphere centered at an arbitrary point
     vec3 oc = center - r.origin();
-    auto a = dot(r.direction(), r.direction());
-    auto b = -2.0 * dot(r.direction(), oc);
-    auto c = dot(oc, oc) - radius*radius;
+    auto a = r.direction().length_squared();
+    auto h = dot(r.direction(), oc);
+    auto c = oc.length_squared() - radius*radius;
+    auto discriminant = h*h - a*c;
     // using a,b,c... can solve for discriminant (# of solutions in quadratic equation)
-    auto discriminant = b*b - 4*a*c;
     // if discriminant is greater than 0, there are two solutions (ray intersects sphere)
 
     if (discriminant < 0) {
-        return false;
-    } else {
-        t = (-b - std::sqrt(discriminant)) / (2.0 * a);
-        return true;
+        return -1.0;
+    } else { ;
+        return (h - std::sqrt(discriminant)) / a;
     }
 
 }
 
 color ray_color(const ray& r) {
-    double t;
     // create a sphere with radius, and give it the current ray
-    if (hit_sphere(vec3(0,0,-1), 0.5, r, t)){
-        vec3 p = r.at(t);
-        return color(1, 1+p.z(), 0);
+    double t = hit_sphere(vec3(0,0,-1), 0.5, r);
+    if (t > 0.0) {
+        vec3 N = unit_vector(r.at(t) - vec3(0,0,-1));
+        return color(N.x()+1, N.y()+1, N.z()+1)*0.5;
     }
     // no sphere is hit, get y value and determine color
     vec3 unit_direction = unit_vector(r.direction());
@@ -82,7 +81,7 @@ int main() {
             // create new ray object starting at camera center
             ray r(camera_center, ray_direction);
 
-            color pixel_color = ray_color(r);
+            color pixel_color = ray_color(r); 
             write_color(std::cout, pixel_color);
         }
     }
